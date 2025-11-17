@@ -1,10 +1,11 @@
 // app/api/maintenance/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+export const GET = withPermission('maintenance', 'read', async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -146,4 +147,63 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-}
+});
+
+// POST - Créer une nouvelle tâche de maintenance
+export const POST = withPermission('maintenance', 'create', async (request: NextRequest) => {
+  try {
+    const data = await request.json();
+    
+    const {
+      equipmentId,
+      type,
+      title,
+      description,
+      priority,
+      scheduledDate,
+      estimatedDuration,
+      assignedTo
+    } = data;
+
+    // Validation des données requises
+    if (!equipmentId || !type || !title || !scheduledDate) {
+      return NextResponse.json(
+        { error: 'Equipment ID, type, title, and scheduled date are required' },
+        { status: 400 }
+      );
+    }
+
+    const task = await prisma.maintenanceTask.create({
+      data: {
+        equipmentId,
+        type,
+        title,
+        description,
+        priority: priority || 'medium',
+        scheduledDate: new Date(scheduledDate),
+        estimatedDuration,
+        assignedTo,
+        status: 'planned'
+      },
+      include: {
+        equipment: {
+          select: {
+            name: true,
+            location: true,
+            type: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json(task, { status: 201 });
+  } catch (error) {
+    console.error('Erreur lors de la création de la tâche:', error);
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+});

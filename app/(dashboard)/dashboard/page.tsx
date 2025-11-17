@@ -55,8 +55,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/kpi/current');
+        const res = await fetch('/api/dashboard/current');
         const data = await res.json();
+        console.log('KPI data:', data);
         setKpiData(data);
       } catch (error) {
         console.error('Erreur:', error);
@@ -75,7 +76,7 @@ export default function DashboardPage() {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     const timeInterval = setInterval(() => setCurrentTime(new Date()), 1000);
-    
+
     return () => {
       clearInterval(interval);
       clearInterval(timeInterval);

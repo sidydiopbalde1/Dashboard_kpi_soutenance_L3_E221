@@ -2,10 +2,31 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+// Fonction helper pour les couleurs des temps d'arrêt
+function getDowntimeColor(category: string): string {
+  switch (category.toLowerCase()) {
+    case 'planned':
+    case 'maintenance':
+      return '#3B82F6'; // Bleu
+    case 'unplanned':
+    case 'breakdown':
+      return '#EF4444'; // Rouge
+    case 'changeover':
+    case 'setup':
+      return '#F59E0B'; // Orange
+    case 'material':
+    case 'supply':
+      return '#8B5CF6'; // Violet
+    default:
+      return '#6B7280'; // Gris
+  }
+}
+
+export const GET = withPermission('dashboard', 'read', async (_request: NextRequest) => {
   try {
     // Récupérer les données de production actuelles (dernières 5 minutes)
     const currentProduction = await prisma.productionData.findFirst({
@@ -206,7 +227,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Erreur API dashboard:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Erreur interne du serveur',
         details: error instanceof Error ? error.message : 'Erreur inconnue'
       },
@@ -215,33 +236,13 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-}
-
-// Fonction helper pour les couleurs des temps d'arrêt
-function getDowntimeColor(category: string): string {
-  switch (category.toLowerCase()) {
-    case 'planned':
-    case 'maintenance':
-      return '#3B82F6'; // Bleu
-    case 'unplanned':
-    case 'breakdown':
-      return '#EF4444'; // Rouge
-    case 'changeover':
-    case 'setup':
-      return '#F59E0B'; // Orange
-    case 'material':
-    case 'supply':
-      return '#8B5CF6'; // Violet
-    default:
-      return '#6B7280'; // Gris
-  }
-}
+});
 
 // API POST pour créer de nouvelles données (optionnel)
-export async function POST(request: NextRequest) {
+export const POST = withPermission('dashboard', 'create', async (request: NextRequest) => {
   try {
     const body = await request.json();
-    
+
     // Créer une nouvelle entrée de production
     const newProduction = await prisma.productionData.create({
       data: {
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erreur création données:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Erreur lors de la création',
         details: error instanceof Error ? error.message : 'Erreur inconnue'
       },
@@ -272,4 +273,4 @@ export async function POST(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-}   
+});

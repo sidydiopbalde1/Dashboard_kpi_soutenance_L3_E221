@@ -1,10 +1,11 @@
 // app/api/safety/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+export const GET = withPermission('safety', 'read', async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
@@ -151,4 +152,59 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-}
+});
+
+// POST - Créer un nouvel incident de sécurité
+export const POST = withPermission('safety', 'create', async (request: NextRequest) => {
+  try {
+    const data = await request.json();
+    
+    const {
+      type,
+      severity,
+      title,
+      description,
+      location,
+      reportedBy,
+      involvedPersons,
+      injuryType,
+      bodyPart,
+      rootCause
+    } = data;
+
+    // Validation des données requises
+    if (!type || !severity || !title || !location || !reportedBy) {
+      return NextResponse.json(
+        { error: 'Type, severity, title, location, and reportedBy are required' },
+        { status: 400 }
+      );
+    }
+
+    const incident = await prisma.safetyIncident.create({
+      data: {
+        type,
+        severity,
+        title,
+        description,
+        location,
+        reportedBy,
+        involvedPersons,
+        injuryType,
+        bodyPart,
+        rootCause,
+        status: 'open',
+        timestamp: new Date()
+      }
+    });
+
+    return NextResponse.json(incident, { status: 201 });
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'incident:', error);
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+});

@@ -9,6 +9,77 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Modèles d'authentification et de rôles
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(OPERATOR)
+  department    String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  
+  // Relations avec les autres entités seront ajoutées plus tard
+  // createdMaintenanceOrders MaintenanceOrder[] @relation("CreatedBy")
+  // assignedMaintenanceOrders MaintenanceOrder[] @relation("AssignedTo")
+  // qualityReports QualityReport[] @relation("CreatedBy")
+  // safetyReports SafetyReport[] @relation("ReportedBy")
+  
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  SUPER_ADMIN     // Accès total au système
+  ADMIN           // Administration générale
+  MANAGER         // Management d'équipe et supervision
+  SUPERVISOR      // Supervision d'une zone/département
+  TECHNICIAN      // Technicien spécialisé
+  OPERATOR        // Opérateur de base
+  VIEWER          // Lecture seule
+}
+
 // ===== TABLES EXISTANTES =====
 
 model ProductionData {

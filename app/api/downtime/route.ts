@@ -1,6 +1,7 @@
 // app/api/downtime/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { withPermission } from '@/lib/api-middleware';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/downtime
  * Récupère les temps d'arrêt
  */
-export async function GET(request: Request) {
+export const GET = withPermission('production', 'read', async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const periodMinutes = parseInt(searchParams.get('period') || '1440'); // 24h par défaut
@@ -73,13 +74,13 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * POST /api/downtime
  * Créer un nouvel arrêt manuellement
  */
-export async function POST(request: Request) {
+export const POST = withPermission('production', 'create', async (request: Request) => {
   try {
     const body = await request.json();
     const { reason, category, description } = body;
@@ -113,4 +114,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

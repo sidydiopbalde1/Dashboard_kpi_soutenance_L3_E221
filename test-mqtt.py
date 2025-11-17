@@ -3,6 +3,8 @@ import paho.mqtt.client as mqtt
 import json
 import time
 import random
+import sys
+import signal
 from datetime import datetime
 
 # Configuration
@@ -11,17 +13,34 @@ PORT = 1883
 TOPIC_DATA = "production/ligne1/data"
 TOPIC_STATUS = "production/ligne1/status"
 
-def on_connect(client, userdata, flags, rc):
+# Variables globales pour gestion d'arrêt
+running = True
+
+def signal_handler(signum, frame):
+    global running
+    print(f"\n🛑 Signal reçu ({signum}), arrêt en cours...")
+    running = False
+
+# Configurer les gestionnaires de signaux
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print("✅ Connecté au broker MQTT")
     else:
         print(f"❌ Échec connexion, code: {rc}")
 
-def on_publish(client, userdata, mid):
+def on_publish(client, userdata, mid, properties=None):
     print(f"📤 Message publié (mid: {mid})")
 
-# Créer le client
-client = mqtt.Client(client_id="test-device-001")
+# Créer le client avec compatibilité maximale
+try:
+    # Essayer la nouvelle API (paho-mqtt >= 2.0)
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id="test-device-001")
+except:
+    # Fallback vers l'ancienne API
+    client = mqtt.Client(client_id="test-device-001")
 client.on_connect = on_connect
 client.on_publish = on_publish
 
@@ -32,10 +51,11 @@ try:
     client.loop_start()
     
     print("✅ Connecté ! Envoi de données toutes les 2 secondes...")
-    print("Appuyez sur Ctrl+C pour arrêter\n")
+    if "--test" not in sys.argv:
+        print("Appuyez sur Ctrl+C pour arrêter\n")
     
     counter = 0
-    while True:
+    while running:
         counter += 1
         
         # Générer des données réalistes
@@ -73,15 +93,23 @@ try:
             client.publish(TOPIC_STATUS, json.dumps(status), qos=1)
             print("✅ Machine redémarrée")
         
+        # Mode test : arrêter après quelques messages
+        if "--test" in sys.argv and counter >= 3:
+            print("🧪 Mode test terminé")
+            running = False
+            break
+            
         time.sleep(2)
 
 except KeyboardInterrupt:
-    print("\n\n🛑 Arrêt du test...")
-    client.loop_stop()
-    client.disconnect()
-    print("👋 Au revoir!")
-
+    print("\n\n🛑 Arrêt du test (Ctrl+C)...")
 except Exception as e:
     print(f"❌ Erreur: {e}")
-    client.loop_stop()
-    client.disconnect()
+finally:
+    print("🔌 Déconnexion...")
+    try:
+        client.loop_stop()
+        client.disconnect()
+        print("👋 Déconnecté proprement!")
+    except:
+        pass

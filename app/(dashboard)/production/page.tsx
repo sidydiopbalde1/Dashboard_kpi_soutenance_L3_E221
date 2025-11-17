@@ -5,45 +5,7 @@ import { useState, useEffect } from 'react';
 import { Factory, TrendingUp, Clock, Target, Users, Package, Play, Pause, Square, Calendar, Filter, Search, BarChart3, RefreshCw } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadialBarChart, RadialBar } from 'recharts';
 import { formatPieLabel } from '@/types/recharts';
-
-interface ProductionOrder {
-  id: string;
-  orderNumber: string;
-  product: string;
-  quantity: number;
-  produced: number;
-  progress: number;
-  targetRate: number;
-  actualRate: number | null;
-  startTime: string | null;
-  endTime?: string | null;
-  estimatedEndTime: string;
-  status: 'waiting' | 'running' | 'paused' | 'completed' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  line: string;
-  operator: string | null;
-  shift: string | null;
-  customer: string | null;
-  setupTime?: number | null;
-  downtime: number;
-  comments?: string | null;
-}
-
-interface ProductionMetrics {
-  totalProduced: number;
-  targetProduction: number;
-  efficiency: number;
-  oee: number;
-  availability: number;
-  performance: number;
-  quality: number;
-  averageRate: number;
-  setupTime: number;
-  activeOrders: number;
-  completedOrders: number;
-  waitingOrders: number;
-  pausedOrders: number;
-}
+import { ProductionOrder, ProductionMetrics } from '@/types/production';
 
 export default function ProductionPage() {
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
@@ -62,6 +24,7 @@ export default function ProductionPage() {
     try {
       const res = await fetch(`/api/production/orders?status=${filterStatus}&line=${filterLine}`);
       const data = await res.json();
+      console.log('Production data:', data);
 
       setOrders(data.orders || []);
       setMetrics(data.metrics || null);

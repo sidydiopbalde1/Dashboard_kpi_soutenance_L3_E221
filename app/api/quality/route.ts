@@ -1,10 +1,11 @@
 // app/api/quality/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+export const GET = withPermission('quality', 'read', async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const severity = searchParams.get('severity');
@@ -187,4 +188,61 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-}
+});
+
+// POST - Créer un nouveau contrôle qualité
+export const POST = withPermission('quality', 'create', async (request: NextRequest) => {
+  try {
+    const data = await request.json();
+    
+    const {
+      lotNumber,
+      productType,
+      defectType,
+      severity,
+      quantity,
+      totalProduced,
+      operator,
+      line,
+      shift,
+      inspector,
+      description
+    } = data;
+
+    // Validation des données requises
+    if (!lotNumber || !productType || !severity || !line || !inspector) {
+      return NextResponse.json(
+        { error: 'Lot number, product type, severity, line, and inspector are required' },
+        { status: 400 }
+      );
+    }
+
+    const qualityControl = await prisma.qualityControl.create({
+      data: {
+        lotNumber,
+        productType,
+        defectType,
+        severity,
+        quantity: quantity || 0,
+        totalProduced: totalProduced || 0,
+        operator,
+        line,
+        shift,
+        inspector,
+        status: 'open',
+        timestamp: new Date(),
+        comments: description
+      }
+    });
+
+    return NextResponse.json(qualityControl, { status: 201 });
+  } catch (error) {
+    console.error('Erreur lors de la création du contrôle qualité:', error);
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+});

@@ -1,10 +1,11 @@
 // app/api/teams/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+export const GET = withPermission('teams', 'read', async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const shift = searchParams.get('shift');
@@ -98,4 +99,4 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect();
   }
-}
+});

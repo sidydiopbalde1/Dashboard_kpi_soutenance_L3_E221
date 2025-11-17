@@ -18,7 +18,7 @@ export default function RapportsPage() {
     
     try {
       // Récupérer les données depuis l'API
-      const response = await fetch('/api/kpi/current');
+      const response = await fetch('/api/dashboard/current');
       
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération des données');

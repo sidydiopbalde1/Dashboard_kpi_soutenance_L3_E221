@@ -3,21 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, XCircle, AlertTriangle, Clock, Search, Filter, Bell, BellOff, Settings, RefreshCw } from 'lucide-react';
-
-interface Alert {
-  id: string;
-  type: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  message: string;
-  timestamp: string;
-  isResolved: boolean;
-  threshold?: string;
-  actualValue?: string;
-  source: string;
-  resolvedAt?: string;
-  resolvedBy?: string;
-  duration?: number;
-}
+import { Alert } from '@/types/alerts';
 
 export default function AlertesPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -121,7 +107,7 @@ export default function AlertesPage() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await fetch('/api/kpi/current');
+        const res = await fetch('/api/dashboard/current');
         if (res.ok) {
           const data = await res.json();
           if (data.alerts && Array.isArray(data.alerts)) {
