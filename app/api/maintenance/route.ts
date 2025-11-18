@@ -1,11 +1,11 @@
 // app/api/maintenance/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { withPermission } from '@/lib/api-middleware';
+import { withPermission, AuthenticatedRequest } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export const GET = withPermission('maintenance', 'read', async (request: NextRequest) => {
+export const GET = withPermission('maintenance', 'read', async (request: AuthenticatedRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -150,7 +150,7 @@ export const GET = withPermission('maintenance', 'read', async (request: NextReq
 });
 
 // POST - Créer une nouvelle tâche de maintenance
-export const POST = withPermission('maintenance', 'create', async (request: NextRequest) => {
+export const POST = withPermission('maintenance', 'create', async (request: AuthenticatedRequest) => {
   try {
     const data = await request.json();
     

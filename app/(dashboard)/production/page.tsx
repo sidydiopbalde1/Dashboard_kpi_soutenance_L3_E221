@@ -23,7 +23,31 @@ export default function ProductionPage() {
   const fetchData = async () => {
     try {
       const res = await fetch(`/api/production/orders?status=${filterStatus}&line=${filterLine}`);
-      const data = await res.json();
+      
+      // Check if response is ok
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('API Response Error:', res.status, res.statusText, errorText);
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      // Check if response has content
+      const responseText = await res.text();
+      if (!responseText.trim()) {
+        console.error('Empty response from API');
+        throw new Error('Empty response from server');
+      }
+      
+      // Try to parse JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('JSON parsing error:', jsonError);
+        console.error('Response text:', responseText);
+        throw new Error('Invalid JSON response from server');
+      }
+      
       console.log('Production data:', data);
 
       setOrders(data.orders || []);

@@ -158,6 +158,9 @@ class MQTTService {
 
       console.log(`✅ Données production enregistrées: ${data.count} bouteilles, cadence ${data.rate} b/min`);
 
+      // Gérer les ProductionOrder
+      await this.updateOrCreateProductionOrder(data, shift);
+
       // Créer une alerte si nécessaire
       await this.checkAndCreateAlerts(data);
 
@@ -166,6 +169,74 @@ class MQTTService {
 
     } catch (error) {
       console.error('❌ Erreur enregistrement données production:', error);
+    }
+  }
+
+  private async updateOrCreateProductionOrder(data: ProductionMessage, shift: string) {
+    try {
+      // Rechercher un ordre de production actif (running ou en attente)
+      let activeOrder = await prisma.productionOrder.findFirst({
+        where: {
+          status: { in: ['running', 'waiting'] },
+          line: 'Ligne 1' // Extrait du topic MQTT
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      if (!activeOrder) {
+        // Créer un nouvel ordre de production automatiquement
+        const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        const targetQuantity = 10000; // Quantité par défaut
+        const estimatedDuration = Math.ceil(targetQuantity / data.targetRate); // en minutes
+
+        activeOrder = await prisma.productionOrder.create({
+          data: {
+            orderNumber,
+            productType: 'Bouteille Standard 1L',
+            quantity: targetQuantity,
+            produced: 0,
+            targetRate: data.targetRate,
+            actualRate: data.rate,
+            startTime: new Date(),
+            estimatedEndTime: new Date(Date.now() + estimatedDuration * 60 * 1000),
+            status: 'running',
+            priority: 'medium',
+            line: 'Ligne 1',
+            shift,
+            operator: 'Auto MQTT',
+            setupTime: 0,
+            downtime: 0
+          }
+        });
+
+        console.log(`📦 Nouvel ordre de production créé: ${orderNumber} (${targetQuantity} unités)`);
+      }
+
+      // Mettre à jour l'ordre actif
+      const newProduced = activeOrder.produced + data.count;
+      const updatedOrder = await prisma.productionOrder.update({
+        where: { id: activeOrder.id },
+        data: {
+          produced: newProduced,
+          actualRate: data.rate,
+          status: newProduced >= activeOrder.quantity ? 'completed' : 'running',
+          endTime: newProduced >= activeOrder.quantity ? new Date() : activeOrder.endTime,
+          updatedAt: new Date()
+        }
+      });
+
+      const progress = Math.round((newProduced / activeOrder.quantity) * 100);
+      console.log(`📦 Ordre ${activeOrder.orderNumber}: ${newProduced}/${activeOrder.quantity} (${progress}%)`);
+
+      // Si l'ordre est complété, en créer un nouveau automatiquement
+      if (updatedOrder.status === 'completed') {
+        console.log(`✅ Ordre ${activeOrder.orderNumber} terminé!`);
+      }
+
+    } catch (error) {
+      console.error('❌ Erreur gestion ProductionOrder:', error);
     }
   }
 

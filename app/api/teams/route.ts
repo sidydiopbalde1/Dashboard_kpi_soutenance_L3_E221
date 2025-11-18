@@ -1,11 +1,11 @@
 // app/api/teams/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { withPermission } from '@/lib/api-middleware';
+import { withPermission, AuthenticatedRequest } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export const GET = withPermission('teams', 'read', async (request: NextRequest) => {
+export const GET = withPermission('teams', 'read', async (request: AuthenticatedRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const shift = searchParams.get('shift');

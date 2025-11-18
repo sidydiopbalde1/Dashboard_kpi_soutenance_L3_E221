@@ -1,11 +1,10 @@
 // app/api/production/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export const GET = withPermission('production', 'read', async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -180,4 +179,4 @@ export const GET = withPermission('production', 'read', async (request: NextRequ
   } finally {
     await prisma.$disconnect();
   }
-});
+}

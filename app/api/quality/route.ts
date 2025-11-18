@@ -1,11 +1,11 @@
 // app/api/quality/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { withPermission } from '@/lib/api-middleware';
+import { withPermission, AuthenticatedRequest } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
-export const GET = withPermission('quality', 'read', async (request: NextRequest) => {
+export const GET = withPermission('quality', 'read', async (request: AuthenticatedRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const severity = searchParams.get('severity');
@@ -191,7 +191,7 @@ export const GET = withPermission('quality', 'read', async (request: NextRequest
 });
 
 // POST - Créer un nouveau contrôle qualité
-export const POST = withPermission('quality', 'create', async (request: NextRequest) => {
+export const POST = withPermission('quality', 'create', async (request: AuthenticatedRequest) => {
   try {
     const data = await request.json();
     

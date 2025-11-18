@@ -2,7 +2,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { withPermission } from '@/lib/api-middleware';
 
 const prisma = new PrismaClient();
 
@@ -26,7 +25,7 @@ function getDowntimeColor(category: string): string {
   }
 }
 
-export const GET = withPermission('dashboard', 'read', async (_request: NextRequest) => {
+export async function GET(_request: NextRequest) {
   try {
     // Récupérer les données de production actuelles (dernières 5 minutes)
     const currentProduction = await prisma.productionData.findFirst({
@@ -236,10 +235,10 @@ export const GET = withPermission('dashboard', 'read', async (_request: NextRequ
   } finally {
     await prisma.$disconnect();
   }
-});
+}
 
 // API POST pour créer de nouvelles données (optionnel)
-export const POST = withPermission('dashboard', 'create', async (request: NextRequest) => {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
@@ -273,4 +272,4 @@ export const POST = withPermission('dashboard', 'create', async (request: NextRe
   } finally {
     await prisma.$disconnect();
   }
-});
+}
