@@ -24,7 +24,6 @@ export default function ProductionPage() {
     try {
       const res = await fetch(`/api/production/orders?status=${filterStatus}&line=${filterLine}`);
       
-      // Check if response is ok
       if (!res.ok) {
         const errorText = await res.text();
         console.error('API Response Error:', res.status, res.statusText, errorText);
@@ -38,7 +37,6 @@ export default function ProductionPage() {
         throw new Error('Empty response from server');
       }
       
-      // Try to parse JSON
       let data;
       try {
         data = JSON.parse(responseText);
